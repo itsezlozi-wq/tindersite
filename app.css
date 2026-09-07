@@ -53,6 +53,11 @@ button {
     color: var(--pink);
     margin-right: 6px;
 }
+.developer-badge { margin-left:8px; padding:3px 7px; border-radius:7px; background:linear-gradient(135deg,#ffd76a,#ff8a4c); color:#24151b; font-size:9px; letter-spacing:.8px; vertical-align:middle; }
+.settings-button { position:absolute; top:22px; right:62px; width:32px; height:32px; border-radius:10px; background:#292532; color:#d6c4ff; }
+.settings-hint { color:var(--muted); font-size:13px; }
+.developer-note { margin:12px 0; padding:10px 13px; border-radius:12px; background:#30243b; color:#ffd477; font-weight:700; text-align:center; }
+.danger-button { padding:12px; border-radius:12px; background:#3a202d; color:#ff9db2; }
 
 .subtitle,
 .eyebrow {
@@ -287,6 +292,24 @@ button {
 
 .admin-controls .accent {
     color: #cebaff;
+}
+
+.admin-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+}
+
+.admin-pagination button {
+    padding: 10px 14px;
+    border-radius: 11px;
+    background: #292532;
+    color: #cdbbff;
+}
+
+.admin-pagination button:disabled {
+    opacity: .35;
 }
 
 .editor {
