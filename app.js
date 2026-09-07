@@ -6,6 +6,7 @@ const API_BASE = (window.TINDER_API_URL || '').replace(/\/$/, '');
 let current = null;
 let botUsername = '';
 let isAdmin = false;
+let isDeveloper = false;
 let adminOffset = 0;
 const ADMIN_PAGE_SIZE = 20;
 const $ = id => document.getElementById(id);
@@ -16,6 +17,7 @@ const api = async (url, options = {}) => {
 };
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const photoUrl = photo => photo && photo.startsWith('/') ? `${API_BASE}${photo}` : photo;
+function applySettings(settings) { if (!settings) return; document.documentElement.style.setProperty('--pink', settings.accent); document.documentElement.style.setProperty('--violet', settings.violet); $('brand-name').textContent = settings.brand; document.querySelector('.subtitle').textContent = settings.subtitle; document.title = settings.brand; }
 const card = p => `<article class="profile-card"><img src="${photoUrl(p.photos[0])}" alt="${esc(p.name)}"><div class="card-info"><div class="name">${esc(p.name)}, ${p.age ?? ''} <span class="verified">✦</span></div><div class="city">⌖ ${esc(p.city)}</div>${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ''}</div></article>`;
 const list = (items, empty, kind = '') => items.length ? items.map(p => `<div class="list-card" data-id="${p.id}"><img src="${photoUrl(p.photos[0])}" alt=""><div class="list-content"><div class="list-name">${esc(p.name)}, ${p.age ?? ''}</div><div class="list-meta">⌖ ${esc(p.city)}${p.premium ? ' · ⭐ Premium' : ''}</div></div>${kind === 'likes' ? '<button class="mini-like" data-action="like">♥</button><button class="mini-nope" data-action="nope">×</button>' : kind === 'matches' && p.username ? '<button class="mini-message" data-action="message">Написать</button>' : ''}</div>`).join('') : `<div class="list-empty">${empty}</div>`;
 function toast(text) { $('toast').textContent = text; $('toast').classList.add('show'); setTimeout(() => $('toast').classList.remove('show'), 2200); }
@@ -57,7 +59,7 @@ async function loadView(view) {
   if (view === 'feed') return loadFeed();
   if (view === 'likes') { $('likes-list').innerHTML = list((await api('/api/likes')).profiles, 'Пока никто не лайкнул тебя', 'likes'); bindListActions('likes-list'); }
   if (view === 'matches') { $('matches-list').innerHTML = list((await api('/api/matches')).profiles, 'Взаимных симпатий пока нет', 'matches'); bindListActions('matches-list'); }
-  if (view === 'profile') { const p = (await api('/api/me')).profile; $('my-profile').innerHTML = p ? `<div class="profile-full">${card(p).replace('profile-card', '')}</div><button id="edit-profile" class="wide-button">Изменить анкету</button>` : '<div class="list-empty">Создай анкету прямо в приложении.</div><button id="create-profile-button" class="wide-button">Создать анкету</button>'; ($('edit-profile') || $('create-profile-button')).onclick = openEditor; }
+  if (view === 'profile') { const p = (await api('/api/me')).profile; $('my-profile').innerHTML = p ? `<div class="profile-full">${card(p).replace('profile-card', '')}</div>${p.is_developer ? '<div class="developer-note">✦ Разработчик бота</div>' : ''}<button id="edit-profile" class="wide-button">Изменить анкету</button>` : '<div class="list-empty">Создай анкету прямо в приложении.</div><button id="create-profile-button" class="wide-button">Создать анкету</button>'; ($('edit-profile') || $('create-profile-button')).onclick = openEditor; }
   if (view === 'admin') await loadAdmin();
 }
 async function openEditor() {
@@ -79,6 +81,15 @@ async function uploadPhoto() {
   const data = new FormData(); data.append('photo', file);
   try { await api('/api/profile/photo', { method: 'POST', headers, body: data }); $('photo-input').value = ''; await openEditor(); } catch (error) { toast(error.message || 'Не удалось загрузить фото'); }
 }
+async function deleteOwnProfile() {
+  if (!confirm('Удалить анкету, лайки и матчи без возможности восстановления?')) return;
+  try {
+    await api('/api/profile', {method:'DELETE'});
+    $('profile-editor').classList.add('hidden');
+    toast('Анкета удалена');
+    await loadView('feed');
+  } catch (error) { toast(error.message || 'Не удалось удалить анкету'); }
+}
 function adminButtons(p) {
   return `<div class="admin-controls"><button data-admin="ban" class="${p.banned ? 'accent' : 'danger'}">${p.banned ? 'Разбанить' : 'Заблокировать'}</button><button data-admin="premium" class="accent">${p.premium ? 'Снять Premium' : 'Выдать Premium'}</button><button data-admin="boost" data-amount="1" class="accent">Буст +1</button><button data-admin="boost" data-amount="5" class="accent">Буст +5</button><button data-admin="delete" class="danger">Удалить анкету</button></div>`;
 }
@@ -93,7 +104,9 @@ async function loadAdmin() {
   $('admin-profiles').querySelectorAll('.admin-user').forEach((el, i) => { el.dataset.profile = JSON.stringify(data.profiles[i]); }); bindAdminCard('admin-profiles');
 }
 async function searchAdmin() { try { const data = await api(`/api/admin/search?q=${encodeURIComponent($('admin-query').value)}`); $('admin-result').innerHTML = data.profile ? adminCard(data.profile) : '<div class="list-empty">Ничего не найдено</div>'; const el = $('admin-result').querySelector('.admin-user'); if (el) { el.dataset.profile = JSON.stringify(data.profile); bindAdminCard('admin-result'); } } catch (error) { toast(error.message || 'Поиск недоступен'); } }
+function openSettings() { api('/api/config').then(data => { const s = data.settings; $('site-brand').value=s.brand; $('site-subtitle').value=s.subtitle; $('site-accent').value=s.accent; $('site-violet').value=s.violet; $('site-settings').classList.remove('hidden'); }); }
+async function saveSettings() { try { const data = await api('/api/settings', {method:'PUT', headers:{...headers, 'Content-Type':'application/json'}, body:JSON.stringify({brand:$('site-brand').value, subtitle:$('site-subtitle').value, accent:$('site-accent').value, violet:$('site-violet').value})}); applySettings(data.settings); $('site-settings').classList.add('hidden'); toast('Дизайн сохранён'); } catch (error) { toast(error.message || 'Не удалось сохранить настройки'); } }
 document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => loadView(tab.dataset.view)));
 document.querySelectorAll('.action').forEach(button => button.addEventListener('click', () => react(button.dataset.kind)));
-$('open-bot').onclick = () => openBot('start'); $('close-editor').onclick = () => $('profile-editor').classList.add('hidden'); $('save-profile').onclick = saveProfile; $('upload-photo').onclick = uploadPhoto; $('admin-search-button').onclick = searchAdmin; $('admin-prev').onclick = () => { adminOffset = Math.max(0, adminOffset - ADMIN_PAGE_SIZE); loadAdmin(); }; $('admin-next').onclick = () => { adminOffset += ADMIN_PAGE_SIZE; loadAdmin(); };
-api('/api/config').then(data => { botUsername = data.bot_username; isAdmin = data.is_admin; document.querySelector('.admin-tab').classList.toggle('hidden', !isAdmin); loadFeed(); }).catch(() => toast('Не удалось подключить приложение'));
+$('open-bot').onclick = () => openBot('start'); $('close-editor').onclick = () => $('profile-editor').classList.add('hidden'); $('save-profile').onclick = saveProfile; $('upload-photo').onclick = uploadPhoto; $('delete-own-profile').onclick = deleteOwnProfile; $('admin-search-button').onclick = searchAdmin; $('admin-prev').onclick = () => { adminOffset = Math.max(0, adminOffset - ADMIN_PAGE_SIZE); loadAdmin(); }; $('admin-next').onclick = () => { adminOffset += ADMIN_PAGE_SIZE; loadAdmin(); }; $('settings-button').onclick = openSettings; $('close-settings').onclick = () => $('site-settings').classList.add('hidden'); $('save-settings').onclick = saveSettings;
+api('/api/config').then(data => { botUsername = data.bot_username; isAdmin = data.is_admin; isDeveloper = data.is_developer; applySettings(data.settings); document.querySelector('.admin-tab').classList.toggle('hidden', !isAdmin); $('settings-button').classList.toggle('hidden', !isAdmin); $('developer-badge').classList.toggle('hidden', !isDeveloper); loadFeed(); }).catch(() => toast('Не удалось подключить приложение'));
