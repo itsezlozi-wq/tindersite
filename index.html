@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>TinderTG</title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <div class="brand"><span class="brand-mark">✦</span> TinderTG</div>
+        <div class="subtitle">Знакомства рядом</div>
+      </div>
+      <button class="avatar-button" id="profile-button">●</button>
+    </header>
+
+    <section id="view-feed" class="view active">
+      <div class="section-heading">
+        <div><span class="eyebrow">Лента</span>
+          <h1>Твоя новая история</h1>
+        </div>
+        <span class="counter" id="feed-counter">1 / 1</span>
+      </div>
+      <div id="card-wrap" class="card-wrap">
+        <div class="loader"></div>
+      </div>
+      <div id="empty-feed" class="empty hidden">
+        <div class="empty-icon">✦</div>
+        <h2>Анкеты закончились</h2>
+        <p>Загляни позже — скоро появятся новые люди.</p>
+      </div>
+      <div id="actions" class="actions hidden">
+        <button class="action secondary" data-kind="nope" aria-label="Пропустить">×</button>
+        <button class="action primary" data-kind="like" aria-label="Нравится">♥</button>
+      </div>
+    </section>
+
+    <section id="view-likes" class="view">
+      <div class="section-heading">
+        <div><span class="eyebrow">Внимание</span>
+          <h1>Тебя лайкнули</h1>
+        </div>
+      </div>
+      <div id="likes-list" class="list"></div>
+    </section>
+
+    <section id="view-matches" class="view">
+      <div class="section-heading">
+        <div><span class="eyebrow">Взаимно</span>
+          <h1>Твои матчи</h1>
+        </div>
+      </div>
+      <div id="matches-list" class="list"></div>
+    </section>
+
+    <section id="view-profile" class="view">
+      <div class="section-heading">
+        <div><span class="eyebrow">Это ты</span>
+          <h1>Моя анкета</h1>
+        </div>
+      </div>
+      <div id="my-profile"></div>
+    </section>
+
+    <nav class="tabbar">
+      <button class="tab selected" data-view="feed"><span>✦</span><small>Лента</small></button>
+      <button class="tab" data-view="likes"><span>♥</span><small>Лайки</small></button>
+      <button class="tab" data-view="matches"><span>♢</span><small>Матчи</small></button>
+      <button class="tab" data-view="profile"><span>●</span><small>Профиль</small></button>
+    </nav>
+  </main>
+  <div id="toast" class="toast"></div>
+  <script src="/app.js"></script>
+</body>
+
+</html>
