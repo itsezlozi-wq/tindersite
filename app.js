@@ -6,6 +6,8 @@ const API_BASE = (window.TINDER_API_URL || '').replace(/\/$/, '');
 let current = null;
 let botUsername = '';
 let isAdmin = false;
+let adminOffset = 0;
+const ADMIN_PAGE_SIZE = 20;
 const $ = id => document.getElementById(id);
 const api = async (url, options = {}) => {
   const response = await fetch(`${API_BASE}${url}`, { headers, ...options });
@@ -78,18 +80,20 @@ async function uploadPhoto() {
   try { await api('/api/profile/photo', { method: 'POST', headers, body: data }); $('photo-input').value = ''; await openEditor(); } catch (error) { toast(error.message || 'Не удалось загрузить фото'); }
 }
 function adminButtons(p) {
-  return `<div class="admin-controls"><button data-admin="ban" class="${p.banned ? 'accent' : 'danger'}">${p.banned ? 'Разбанить' : 'Заблокировать'}</button><button data-admin="premium" class="accent">${p.premium ? 'Снять Premium' : 'Выдать Premium'}</button><button data-admin="boost" class="accent">Буст +1</button><button data-admin="delete" class="danger">Удалить анкету</button></div>`;
+  return `<div class="admin-controls"><button data-admin="ban" class="${p.banned ? 'accent' : 'danger'}">${p.banned ? 'Разбанить' : 'Заблокировать'}</button><button data-admin="premium" class="accent">${p.premium ? 'Снять Premium' : 'Выдать Premium'}</button><button data-admin="boost" data-amount="1" class="accent">Буст +1</button><button data-admin="boost" data-amount="5" class="accent">Буст +5</button><button data-admin="delete" class="danger">Удалить анкету</button></div>`;
 }
 function adminCard(p) { return p ? `<div class="admin-user"><div class="list-name">${esc(p.name)}, ${p.age} · ID ${p.telegram_id}</div><div class="list-meta">⌖ ${esc(p.city)} · @${esc(p.username || 'нет username')} · ${p.banned ? '🚫 бан' : 'активен'} · бустов: ${p.boosts}</div>${adminButtons(p)}</div>` : ''; }
-function bindAdminCard(container) { $(container).querySelectorAll('[data-admin]').forEach(button => button.onclick = async () => { const p = JSON.parse($(container).dataset.profile); const action = button.dataset.admin; if (action === 'delete' && !confirm('Удалить анкету и все её лайки?')) return; await api(`/api/admin/${action}/${p.id}`, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 1 }) }); toast('Готово'); await loadAdmin(); }); }
+function bindAdminCard(container) { $(container).querySelectorAll('[data-admin]').forEach(button => button.onclick = async () => { const p = JSON.parse(button.closest('.admin-user').dataset.profile); const action = button.dataset.admin; if (action === 'delete' && !confirm('Удалить анкету и все её лайки?')) return; try { await api(`/api/admin/${action}/${p.telegram_id}`, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: Number(button.dataset.amount || 1) }) }); toast(action === 'boost' ? `Выдан буст +${button.dataset.amount || 1}` : 'Готово'); await loadAdmin(); } catch (error) { toast(error.message || 'Действие не выполнено'); } }); }
 async function loadAdmin() {
   const stats = await api('/api/admin/stats');
   $('admin-stats').innerHTML = [['users', 'Пользователи'], ['profiles', 'Анкеты'], ['matches', 'Матчи'], ['premium', 'Premium'], ['banned', 'Баны']].map(([key, label]) => `<div class="stat"><b>${stats[key]}</b><span>${label}</span></div>`).join('');
-  const data = await api('/api/admin/profiles'); $('admin-profiles').innerHTML = data.profiles.map(p => adminCard(p)).join('') || '<div class="list-empty">Анкет нет</div>';
+  const data = await api(`/api/admin/profiles?offset=${adminOffset}`); $('admin-profiles').innerHTML = data.profiles.map(p => adminCard(p)).join('') || '<div class="list-empty">Анкет нет</div>';
+  $('admin-page').textContent = data.total ? `${data.offset + 1}–${Math.min(data.offset + ADMIN_PAGE_SIZE, data.total)} из ${data.total}` : '0 анкет';
+  $('admin-prev').disabled = data.offset === 0; $('admin-next').disabled = data.offset + ADMIN_PAGE_SIZE >= data.total;
   $('admin-profiles').querySelectorAll('.admin-user').forEach((el, i) => { el.dataset.profile = JSON.stringify(data.profiles[i]); }); bindAdminCard('admin-profiles');
 }
-async function searchAdmin() { const data = await api(`/api/admin/search?q=${encodeURIComponent($('admin-query').value)}`); $('admin-result').innerHTML = data.profile ? adminCard(data.profile) : '<div class="list-empty">Ничего не найдено</div>'; const el = $('admin-result').querySelector('.admin-user'); if (el) { el.dataset.profile = JSON.stringify(data.profile); bindAdminCard('admin-result'); } }
+async function searchAdmin() { try { const data = await api(`/api/admin/search?q=${encodeURIComponent($('admin-query').value)}`); $('admin-result').innerHTML = data.profile ? adminCard(data.profile) : '<div class="list-empty">Ничего не найдено</div>'; const el = $('admin-result').querySelector('.admin-user'); if (el) { el.dataset.profile = JSON.stringify(data.profile); bindAdminCard('admin-result'); } } catch (error) { toast(error.message || 'Поиск недоступен'); } }
 document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => loadView(tab.dataset.view)));
 document.querySelectorAll('.action').forEach(button => button.addEventListener('click', () => react(button.dataset.kind)));
-$('open-bot').onclick = () => openBot('start'); $('close-editor').onclick = () => $('profile-editor').classList.add('hidden'); $('save-profile').onclick = saveProfile; $('upload-photo').onclick = uploadPhoto; $('admin-search-button').onclick = searchAdmin;
+$('open-bot').onclick = () => openBot('start'); $('close-editor').onclick = () => $('profile-editor').classList.add('hidden'); $('save-profile').onclick = saveProfile; $('upload-photo').onclick = uploadPhoto; $('admin-search-button').onclick = searchAdmin; $('admin-prev').onclick = () => { adminOffset = Math.max(0, adminOffset - ADMIN_PAGE_SIZE); loadAdmin(); }; $('admin-next').onclick = () => { adminOffset += ADMIN_PAGE_SIZE; loadAdmin(); };
 api('/api/config').then(data => { botUsername = data.bot_username; isAdmin = data.is_admin; document.querySelector('.admin-tab').classList.toggle('hidden', !isAdmin); loadFeed(); }).catch(() => toast('Не удалось подключить приложение'));
