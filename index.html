@@ -73,11 +73,32 @@
       <div id="my-profile"></div>
     </section>
 
+    <section id="view-admin" class="view">
+      <div class="section-heading"><div><span class="eyebrow">Управление</span><h1>Админ-панель</h1></div></div>
+      <div id="admin-stats" class="stats"></div>
+      <div class="admin-search"><input id="admin-query" placeholder="ID, @username или имя"><button id="admin-search-button">Найти</button></div>
+      <div id="admin-result"></div>
+      <div id="admin-profiles" class="list"></div>
+    </section>
+
+    <section id="profile-editor" class="editor hidden">
+      <div class="editor-head"><button id="close-editor">Назад</button><b>Моя анкета</b><button id="save-profile">Сохранить</button></div>
+      <div class="editor-form">
+        <label>Имя<input id="edit-name" maxlength="40"></label>
+        <div class="form-row"><label>Возраст<input id="edit-age" type="number" min="18" max="80"></label><label>Город<input id="edit-city" maxlength="40"></label></div>
+        <div class="form-row"><label>Я<select id="edit-gender"><option value="male">Парень</option><option value="female">Девушка</option></select></label><label>Ищу<select id="edit-looking"><option value="all">Всех</option><option value="male">Парней</option><option value="female">Девушек</option></select></label></div>
+        <label>О себе<textarea id="edit-bio" maxlength="400" rows="4"></textarea></label>
+        <div class="photo-tools"><input id="photo-input" type="file" accept="image/*"><button id="upload-photo">Добавить фото</button></div>
+        <div id="edit-photos" class="edit-photos"></div>
+      </div>
+    </section>
+
     <nav class="tabbar">
       <button class="tab selected" data-view="feed"><span>✦</span><small>Лента</small></button>
       <button class="tab" data-view="likes"><span>♥</span><small>Лайки</small></button>
       <button class="tab" data-view="matches"><span>♢</span><small>Матчи</small></button>
       <button class="tab" data-view="profile"><span>●</span><small>Профиль</small></button>
+      <button class="tab admin-tab hidden" data-view="admin"><span>⚙</span><small>Админ</small></button>
     </nav>
   </main>
   <div id="toast" class="toast"></div>
