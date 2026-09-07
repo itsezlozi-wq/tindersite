@@ -2,18 +2,20 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 const headers = {'X-Telegram-Init-Data': tg.initData};
+const API_BASE = (window.TINDER_API_URL || '').replace(/\/$/, '');
 let current = null;
 let botUsername = '';
 let isAdmin = false;
 const $ = id => document.getElementById(id);
 const api = async (url, options = {}) => {
-  const response = await fetch(url, {headers, ...options});
+  const response = await fetch(`${API_BASE}${url}`, {headers, ...options});
   if (!response.ok) throw new Error(await response.text());
   return response.json();
 };
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const card = p => `<article class="profile-card"><img src="${p.photos[0]}" alt="${esc(p.name)}"><div class="card-info"><div class="name">${esc(p.name)}, ${p.age ?? ''} <span class="verified">✦</span></div><div class="city">⌖ ${esc(p.city)}</div>${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ''}</div></article>`;
-const list = (items, empty, kind = '') => items.length ? items.map(p => `<div class="list-card" data-id="${p.id}"><img src="${p.photos[0]}" alt=""><div class="list-content"><div class="list-name">${esc(p.name)}, ${p.age ?? ''}</div><div class="list-meta">⌖ ${esc(p.city)}${p.premium ? ' · ⭐ Premium' : ''}</div></div>${kind === 'likes' ? '<button class="mini-like" data-action="like">♥</button><button class="mini-nope" data-action="nope">×</button>' : kind === 'matches' && p.username ? '<button class="mini-message" data-action="message">Написать</button>' : ''}</div>`).join('') : `<div class="list-empty">${empty}</div>`;
+const photoUrl = photo => photo && photo.startsWith('/') ? `${API_BASE}${photo}` : photo;
+const card = p => `<article class="profile-card"><img src="${photoUrl(p.photos[0])}" alt="${esc(p.name)}"><div class="card-info"><div class="name">${esc(p.name)}, ${p.age ?? ''} <span class="verified">✦</span></div><div class="city">⌖ ${esc(p.city)}</div>${p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ''}</div></article>`;
+const list = (items, empty, kind = '') => items.length ? items.map(p => `<div class="list-card" data-id="${p.id}"><img src="${photoUrl(p.photos[0])}" alt=""><div class="list-content"><div class="list-name">${esc(p.name)}, ${p.age ?? ''}</div><div class="list-meta">⌖ ${esc(p.city)}${p.premium ? ' · ⭐ Premium' : ''}</div></div>${kind === 'likes' ? '<button class="mini-like" data-action="like">♥</button><button class="mini-nope" data-action="nope">×</button>' : kind === 'matches' && p.username ? '<button class="mini-message" data-action="message">Написать</button>' : ''}</div>`).join('') : `<div class="list-empty">${empty}</div>`;
 function toast(text) { $('toast').textContent = text; $('toast').classList.add('show'); setTimeout(() => $('toast').classList.remove('show'), 2200); }
 function openBot(command = 'start') { if (botUsername) tg.openTelegramLink(`https://t.me/${botUsername}?start=${command}`); }
 
@@ -63,7 +65,7 @@ async function openEditor() {
   $('edit-gender').value = p?.gender || 'male'; $('edit-looking').value = p?.looking_for || 'all'; $('edit-bio').value = p?.bio || '';
   renderEditPhotos(p?.photos || []);
 }
-function renderEditPhotos(photos) { $('edit-photos').innerHTML = photos.map(photo => `<div class="edit-photo"><img src="${photo}"><button data-photo="${photo}">×</button></div>`).join(''); $('edit-photos').querySelectorAll('button').forEach(b => b.onclick = async () => { await api('/api/profile/photo', {method:'DELETE', headers:{...headers, 'Content-Type':'application/json'}, body:JSON.stringify({photo_id:b.dataset.photo.replace('/media/','')})}); openEditor(); }); }
+function renderEditPhotos(photos) { $('edit-photos').innerHTML = photos.map(photo => `<div class="edit-photo"><img src="${photoUrl(photo)}"><button data-photo="${photo}">×</button></div>`).join(''); $('edit-photos').querySelectorAll('button').forEach(b => b.onclick = async () => { await api('/api/profile/photo', {method:'DELETE', headers:{...headers, 'Content-Type':'application/json'}, body:JSON.stringify({photo_id:b.dataset.photo.replace('/media/','')})}); openEditor(); }); }
 async function saveProfile() {
   try {
     await api('/api/profile', {method:'PUT', headers:{...headers, 'Content-Type':'application/json'}, body:JSON.stringify({name:$('edit-name').value, age:$('edit-age').value, city:$('edit-city').value, gender:$('edit-gender').value, looking_for:$('edit-looking').value, bio:$('edit-bio').value})});
