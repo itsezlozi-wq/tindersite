@@ -13,10 +13,11 @@
   <main class="app">
     <header class="topbar">
       <div>
-        <div class="brand"><span class="brand-mark">✦</span> TinderTG</div>
+        <div class="brand"><span class="brand-mark">✦</span><span id="brand-name">TinderTG</span><span id="developer-badge" class="developer-badge hidden">DEV</span></div>
         <div class="subtitle">Знакомства рядом</div>
       </div>
       <button class="avatar-button" id="profile-button">●</button>
+      <button class="settings-button hidden" id="settings-button" aria-label="Настройки">⚙</button>
     </header>
 
     <section id="view-feed" class="view active">
@@ -106,6 +107,17 @@
         <div class="photo-tools"><input id="photo-input" type="file" accept="image/*"><button id="upload-photo">Добавить
             фото</button></div>
         <div id="edit-photos" class="edit-photos"></div>
+        <button id="delete-own-profile" class="danger-button">Удалить мою анкету</button>
+      </div>
+    </section>
+
+    <section id="site-settings" class="editor hidden">
+      <div class="editor-head"><button id="close-settings">Назад</button><b>Настройки сайта</b><button id="save-settings">Сохранить</button></div>
+      <div class="editor-form">
+        <label>Название<input id="site-brand" maxlength="40"></label>
+        <label>Подзаголовок<input id="site-subtitle" maxlength="80"></label>
+        <div class="form-row"><label>Основной цвет<input id="site-accent" type="color"></label><label>Второй цвет<input id="site-violet" type="color"></label></div>
+        <p class="settings-hint">Эти настройки меняют внешний вид приложения для всех пользователей.</p>
       </div>
     </section>
 
